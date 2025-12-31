@@ -1,14 +1,12 @@
 import express from "express"
 import cors from "cors"
 import fetch from "node-fetch"
-import pkg from "@google-cloud/vertexai"
+import { VertexAI } from "@google-cloud/vertexai"
 import { getVercelOidcToken } from "@vercel/oidc"
 import { ExternalAccountClient } from "google-auth-library"
 import dotenv from "dotenv"
 
 dotenv.config()
-const { GenerativeModelsClient } = pkg
-
 const app = express()
 app.use(express.json())
 app.use(cors())
@@ -28,18 +26,23 @@ const authClient = ExternalAccountClient.fromJSON({
     subject_token_supplier: { getSubjectToken: getVercelOidcToken },
 })
 
-const vertexClient = new GenerativeModelsClient({ auth: authClient })
+const vertexAI = new VertexAI({
+    authClient,
+    project: GCP_PROJECT_ID,
+    location: "us-central1",
+})
 
 app.post("/chat", async (req, res) => {
     try {
         const { prompt, voice_id } = req.body
         if (!prompt || !voice_id) return res.status(400).json({ error: "Missing prompt or voice_id" })
 
-        const [vertexResponse] = await vertexClient.generateText({
-            model: `projects/${GCP_PROJECT_ID}/locations/us-central1/publishers/google/models/gemini-2.5-flash`,
-            input: prompt,
+        const model = await vertexAI.generativeModels.get({
+            model: "gemini-2.5-flash"
         })
-        const generatedText = vertexResponse.output[0].content
+
+        const vertexResponse = await model.generateContent({ prompt })
+        const generatedText = vertexResponse.response.candidates[0].content.parts[0].text
 
         const elevenResponse = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice_id}`, {
             method: "POST",
