@@ -117,7 +117,7 @@
         }
 
         .wave {
-            margin: 20px auto;
+            margin: 10px auto 0;
             height: 10px;
             width: 100%;
             max-width: 400px;
@@ -143,13 +143,24 @@
         @keyframes wave { to { transform: scaleY(2); opacity: 0.6; } }
 
         #thinkingText {
-            margin-top: 10px;
+            margin-top: 20px;
             font-size: 18px;
             color: #6c63ff;
             font-weight: bold;
             height: 24px;
-            overflow: hidden;
-            white-space: nowrap;
+        }
+
+        .dots span {
+            animation: blink 1s infinite;
+            opacity: 0;
+        }
+        .dots span:nth-child(1) { animation-delay: 0s; }
+        .dots span:nth-child(2) { animation-delay: 0.2s; }
+        .dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes blink {
+            0%, 20%, 100% { opacity: 0; }
+            10%, 30% { opacity: 1; }
         }
     </style>
 </head>
@@ -159,11 +170,15 @@
     <textarea id="prompt" placeholder="Type your message..."></textarea>
     <select id="voiceSelect"></select>
     <button id="speakBtn">Send</button>
-    <div id="thinkingText"></div>
     <div id="responseText" class="markdown-content"></div>
+
+    <div id="thinkingText" style="display:none;">
+        Thinking<span class="dots"><span>.</span><span>.</span><span>.</span></span>
+    </div>
     <div class="wave" id="waveAnimation" style="display:none;">
         <span></span><span></span><span></span><span></span><span></span>
     </div>
+
     <audio id="audioPlayer" controls></audio>
 </div>
 
@@ -195,29 +210,13 @@
         }
     }
 
-    function animateThinking(text) {
-        thinkingText.textContent = ""
-        let i = 0
-        const interval = setInterval(() => {
-            if (i < text.length) {
-                thinkingText.textContent += text[i]
-                i++
-            } else {
-                thinkingText.textContent = ""
-                i = 0
-            }
-        }, 200)
-        return interval
-    }
-
     async function sendPrompt() {
         const prompt = promptInput.value.trim()
         const voice_id = voiceSelect.value
         if (!prompt || !voice_id) return
 
         waveAnimation.style.display = "flex"
-        const thinkingInterval = animateThinking("Thinking...")
-
+        thinkingText.style.display = "block"
         responseText.innerHTML = ""
 
         try {
@@ -240,8 +239,7 @@
             responseText.textContent = "Network or server error"
         } finally {
             waveAnimation.style.display = "none"
-            clearInterval(thinkingInterval)
-            thinkingText.textContent = ""
+            thinkingText.style.display = "none"
         }
     }
 
