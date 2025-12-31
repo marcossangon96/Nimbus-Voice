@@ -3,31 +3,28 @@ const dotenv = require("dotenv")
 const cors = require("cors")
 const fetch = require("node-fetch")
 const { VertexAI } = require("@google-cloud/vertexai")
-const fs = require("fs")
 
 dotenv.config()
 const app = express()
 app.use(express.json())
 app.use(cors())
 
-if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-    const tmpDir = process.env.TMPDIR || "/tmp"
-    const tmpPath = `${tmpDir}/key.json`
-    fs.writeFileSync(tmpPath, process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON)
-    process.env.GOOGLE_APPLICATION_CREDENTIALS = tmpPath
-}
-
 if (!process.env.GOOGLE_CLOUD_PROJECT) {
     console.error("ERROR: GOOGLE_CLOUD_PROJECT not set")
 }
 
-console.log("Using credentials file at:", process.env.GOOGLE_APPLICATION_CREDENTIALS)
-console.log("GOOGLE_CLOUD_PROJECT:", process.env.GOOGLE_CLOUD_PROJECT)
+if (!process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+    console.error("ERROR: GOOGLE_APPLICATION_CREDENTIALS_JSON not set")
+}
+
+const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON)
 
 const vertexAI = new VertexAI({
     project: process.env.GOOGLE_CLOUD_PROJECT,
-    location: "us-central1"
+    location: "us-central1",
+    credentials
 })
+
 const model = vertexAI.preview.getGenerativeModel({ model: "gemini-2.5-flash" })
 
 app.post("/chat", async (req, res) => {
@@ -73,8 +70,5 @@ app.get("/voices", async (req, res) => {
     }
 })
 
-app.get("/", (req, res) => {
-    res.redirect("/index.html")
-})
-
-module.exports = app
+const PORT = process.env.PORT || 8080
+app.listen(PORT, () => console.log(`Nimbus Voice backend running on ${PORT}`))
