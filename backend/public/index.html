@@ -157,6 +157,7 @@
             animation: blink 1s infinite;
             opacity: 0;
         }
+
         .dots span:nth-child(1) { animation-delay: 0s; }
         .dots span:nth-child(2) { animation-delay: 0.2s; }
         .dots span:nth-child(3) { animation-delay: 0.4s; }
@@ -168,96 +169,105 @@
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>Nimbus Voice</h1>
-    <textarea id="prompt" placeholder="Type your message..."></textarea>
-    <select id="voiceSelect"></select>
-    <button id="speakBtn">Send</button>
+    <div class="container">
+        <h1>Nimbus Voice</h1>
+        <textarea id="prompt" placeholder="Type your message..."></textarea>
+        <select id="voiceSelect"></select>
+        <button id="speakBtn">Send</button>
 
-    <div id="thinkingText">
-        Thinking<span class="dots"><span>.</span><span>.</span><span>.</span></span>
+        <div id="thinkingText">
+            Thinking<span class="dots"><span>.</span><span>.</span><span>.</span></span>
+        </div>
+
+        <div class="wave" id="waveAnimation" style="display:none;">
+            <span></span><span></span><span></span><span></span><span></span>
+        </div>
+
+        <div id="responseText" class="markdown-content"></div>
+        <audio id="audioPlayer" controls></audio>
     </div>
-    <div class="wave" id="waveAnimation" style="display:none;">
-        <span></span><span></span><span></span><span></span><span></span>
-    </div>
 
-    <div id="responseText" class="markdown-content"></div>
-    <audio id="audioPlayer" controls></audio>
-</div>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        const voiceSelect = document.getElementById("voiceSelect");
+        const promptInput = document.getElementById("prompt");
+        const speakBtn = document.getElementById("speakBtn");
+        const responseText = document.getElementById("responseText");
+        const audioPlayer = document.getElementById("audioPlayer");
+        const waveAnimation = document.getElementById("waveAnimation");
+        const thinkingText = document.getElementById("thinkingText");
 
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script>
-    const voiceSelect = document.getElementById("voiceSelect")
-    const promptInput = document.getElementById("prompt")
-    const speakBtn = document.getElementById("speakBtn")
-    const responseText = document.getElementById("responseText")
-    const audioPlayer = document.getElementById("audioPlayer")
-    const waveAnimation = document.getElementById("waveAnimation")
-    const thinkingText = document.getElementById("thinkingText")
-    
-    responseText.style.display = "none"
-    audioPlayer.style.display = "none"
-
-    async function loadVoices() {
-        try {
-            const res = await fetch("/voices")
-            const data = await res.json()
-            voiceSelect.innerHTML = ""
-            if (data.voices && data.voices.length > 0) {
-                data.voices.forEach(v => {
-                    const option = document.createElement("option")
-                    option.value = v.voice_id
-                    option.textContent = v.name
-                    voiceSelect.appendChild(option)
-                })
-            }
-        } catch (err) {
-            console.error("Error loading voices", err)
+        async function loadVoices() {
+            try {
+                const res = await fetch("/voices");
+                const data = await res.json();
+                voiceSelect.innerHTML = "";
+                if (data.voices && data.voices.length > 0) {
+                    data.voices.forEach(v => {
+                        const option = document.createElement("option");
+                        option.value = v.voice_id;
+                        option.textContent = v.name;
+                        voiceSelect.appendChild(option);
+                    });
+                }
+            } catch (err) { console.error(err); }
         }
-    }
 
-    async function sendPrompt() {
-        const prompt = promptInput.value.trim()
-        const voice_id = voiceSelect.value
-        if (!prompt || !voice_id) return
+        async function sendPrompt() {
+            const prompt = promptInput.value.trim();
+            const voice_id = voiceSelect.value;
+            if (!prompt || !voice_id) return;
 
-        waveAnimation.style.display = "flex"
-        thinkingText.style.display = "block"
-        responseText.style.display = "none"
-        audioPlayer.style.display = "none"
-        responseText.innerHTML = ""
+            waveAnimation.style.display = "flex";
+            thinkingText.style.display = "block";
+            responseText.style.display = "none";
+            audioPlayer.style.display = "none";
+            responseText.innerHTML = "";
 
-        try {
-            const res = await fetch("/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt, voice_id })
-            })
-            const data = await res.json()
-            if (data.error) {
-                responseText.textContent = "Error: " + data.error
-                responseText.style.display = "block"
-                return
+            try {
+                const res = await fetch("/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt, voice_id })
+                });
+                const data = await res.json();
+                if (data.error) {
+                    responseText.textContent = "Error: " + data.error;
+                    responseText.style.display = "block";
+                    return;
+                }
+
+                responseText.innerHTML = marked.parse(data.text);
+                responseText.style.display = "block";
+
+                console.log("AUDIO -> " + data.audio)
+                console.log("RESPONSE -> " + data)
+
+                if (data.audio) {
+                    audioPlayer.pause();
+                    audioPlayer.currentTime = 0;
+                    audioPlayer.src = "data:audio/mpeg;base64," + data.audio;
+                    audioPlayer.style.display = "block";
+                    audioPlayer.load();
+                    audioPlayer.oncanplaythrough = () => {
+                        audioPlayer.play().catch(e => console.error("Playback error:", e));
+                    };
+                } else {
+                    audioPlayer.style.display = "none";
+                }
+
+            } catch (err) {
+                console.error(err);
+                responseText.textContent = "Network or server error";
+                responseText.style.display = "block";
+            } finally {
+                waveAnimation.style.display = "none";
+                thinkingText.style.display = "none";
             }
-
-            responseText.innerHTML = marked.parse(data.text)
-            responseText.style.display = "block"
-
-            audioPlayer.src = "data:audio/mpeg;base64," + data.audio
-            audioPlayer.style.display = "block"
-            audioPlayer.play()
-        } catch (err) {
-            console.error(err)
-            responseText.textContent = "Network or server error"
-            responseText.style.display = "block"
-        } finally {
-            waveAnimation.style.display = "none"
-            thinkingText.style.display = "none"
         }
-    }
 
-    speakBtn.addEventListener("click", sendPrompt)
-    loadVoices()
-</script>
+        speakBtn.addEventListener("click", sendPrompt);
+        loadVoices();
+    </script>
 </body>
 </html>
