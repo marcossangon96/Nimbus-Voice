@@ -12,6 +12,7 @@ app.use(express.json())
 app.use(cors())
 
 const __dirnameStatic = path.resolve()
+
 app.use(express.static(path.join(__dirnameStatic, "public")))
 
 app.get("/", (req, res) => {
