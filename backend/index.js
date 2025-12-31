@@ -3,20 +3,16 @@ const dotenv = require("dotenv")
 const cors = require("cors")
 const fetch = require("node-fetch")
 const { VertexAI } = require("@google-cloud/vertexai")
-const path = require("path")
 const fs = require("fs")
+const path = require("path")
 
 dotenv.config()
 const app = express()
 app.use(express.json())
 app.use(cors())
 
-const __dirnameStatic = path.resolve()
-
-app.use(express.static(path.join(__dirnameStatic, "public")))
-
 app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirnameStatic, "public", "index.html"))
+    res.redirect("/index.html")
 })
 
 if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
