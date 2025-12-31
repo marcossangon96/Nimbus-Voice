@@ -59,10 +59,8 @@ app.post("/chat", async (req, res) => {
             }),
         })
 
-        const audioArrayBuffer = await elevenResponse.arrayBuffer()
-        const uint8Array = new Uint8Array(audioArrayBuffer)
-        const base64Audio = Buffer.from(uint8Array).toString("base64")
-
+        const audioBuffer = await elevenResponse.arrayBuffer()
+        const base64Audio = Buffer.from(audioBuffer).toString("base64")
         res.json({ text: generatedText, audio: base64Audio })
     } catch (err) {
         console.error(err)
