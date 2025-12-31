@@ -2,8 +2,8 @@ const express = require("express")
 const dotenv = require("dotenv")
 const cors = require("cors")
 const fetch = require("node-fetch")
-const path = require("path")
 const { VertexAI } = require("@google-cloud/vertexai")
+const { GoogleAuth } = require("google-auth-library")
 
 dotenv.config()
 const app = express()
@@ -13,34 +13,35 @@ app.use(cors())
 if (!process.env.GOOGLE_CLOUD_PROJECT) {
     console.error("ERROR: GOOGLE_CLOUD_PROJECT not set")
 }
-
 if (!process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
     console.error("ERROR: GOOGLE_APPLICATION_CREDENTIALS_JSON not set")
 }
+if (!process.env.ELEVENLABS_API_KEY) {
+    console.error("ERROR: ELEVENLABS_API_KEY not set")
+}
 
-const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON)
+async function createVertexModel() {
+    const auth = new GoogleAuth({
+        credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON),
+        scopes: ["https://www.googleapis.com/auth/cloud-platform"]
+    })
+    const client = await auth.getClient()
+    const vertexAI = new VertexAI({
+        authClient: client,
+        project: process.env.GOOGLE_CLOUD_PROJECT,
+        location: "us-central1"
+    })
+    return vertexAI.preview.getGenerativeModel({ model: "gemini-2.5-flash" })
+}
 
-const vertexAI = new VertexAI({
-    project: process.env.GOOGLE_CLOUD_PROJECT,
-    location: "us-central1",
-    credentials
-})
-
-const model = vertexAI.preview.getGenerativeModel({ model: "gemini-2.5-flash" })
-
-// Serve static files from "public" folder
-app.use(express.static(path.join(__dirname, "public")))
-
-// Root serves index.html
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index.html"))
-})
+let modelPromise = createVertexModel()
 
 app.post("/chat", async (req, res) => {
     try {
         const { prompt, voice_id } = req.body
         if (!prompt || !voice_id) return res.status(400).json({ error: "Missing prompt or voice_id" })
 
+        const model = await modelPromise
         const vertexResponse = await model.generateContent(prompt)
         const generatedText = vertexResponse.response.candidates[0].content.parts[0].text
 
@@ -77,6 +78,10 @@ app.get("/voices", async (req, res) => {
         console.error(err)
         res.status(500).json({ error: err.message })
     }
+})
+
+app.get("/", (req, res) => {
+    res.redirect("/index.html")
 })
 
 const PORT = process.env.PORT || 8080
