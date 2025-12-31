@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nimbus Voice</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #fef6f9 0%, #e0f7fa 100%);
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: #ffffffcc;
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            overflow-y: auto;
+            max-height: 90vh;
+        }
+
+        h1 {
+            color: #6c63ff;
+            margin-bottom: 24px;
+            font-size: 2rem;
+        }
+
+        textarea, select {
+            width: 100%;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            border-radius: 12px;
+            border: 2px solid #6c63ff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            font-size: 16px;
+            outline: none;
+            background: #fff;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        textarea { min-height: 80px; resize: vertical; }
+        select { height: auto; }
+
+        textarea:focus, select:focus {
+            border-color: #ff80ab;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        button {
+            width: 100%;
+            background-color: #6c63ff;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:disabled { background-color: #aaa; cursor: default; }
+
+        button::after {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: -100%;
+            background: linear-gradient(120deg, rgba(255,255,255,0.2), rgba(255,255,255,0.5), rgba(255,255,255,0.2));
+            transition: all 0.5s;
+        }
+
+        button.loading::after {
+            left: 100%;
+            transition: left 1s linear infinite;
+        }
+
+        #responseText {
+            margin-top: 20px;
+            padding: 14px;
+            background: #f1f0ff;
+            border-radius: 12px;
+            min-height: 60px;
+            font-size: 16px;
+            color: #333;
+            transition: all 0.3s ease;
+            white-space: pre-wrap;
+            text-align: left;
+        }
+
+        audio {
+            margin-top: 20px;
+            width: 100%;
+            outline: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .wave {
+            margin: 20px auto;
+            height: 10px;
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .wave span {
+            display: block;
+            width: 6px;
+            height: 10px;
+            background: #6c63ff;
+            border-radius: 3px;
+            animation: wave 0.5s infinite alternate;
+        }
+
+        .wave span:nth-child(2) { animation-delay: 0.1s; }
+        .wave span:nth-child(3) { animation-delay: 0.2s; }
+        .wave span:nth-child(4) { animation-delay: 0.3s; }
+        .wave span:nth-child(5) { animation-delay: 0.4s; }
+
+        @keyframes wave { to { transform: scaleY(2); opacity: 0.6; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Nimbus Voice</h1>
+    <textarea id="promptInput" placeholder="Type your prompt here"></textarea>
+    <select id="voiceSelect">
+        <option value="" disabled selected>Select a voice</option>
+    </select>
+    <button id="speakBtn">Send</button>
+    <div id="responseText"></div>
+    <div class="wave" id="waveAnimation" style="display:none;">
+        <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <audio id="audioPlayer" controls></audio>
+</div>
+
+<script>
+    const speakBtn = document.getElementById("speakBtn")
+    const promptInput = document.getElementById("promptInput")
+    const responseText = document.getElementById("responseText")
+    const audioPlayer = document.getElementById("audioPlayer")
+    const waveAnimation = document.getElementById("waveAnimation")
+    const voiceSelect = document.getElementById("voiceSelect")
+
+    async function loadVoices() {
+        try {
+            const res = await fetch("http://localhost:8080/voices")
+            const data = await res.json()
+            console.log("Voice API response:", data)
+            let voices = data.voices || []
+
+            if (voices.length === 0) {
+                console.warn("No voices returned from API")
+                return
+            }
+
+            voices.forEach(v => {
+                const option = document.createElement("option")
+                option.value = v.voice_id
+                option.textContent = v.name
+                voiceSelect.appendChild(option)
+            })
+        } catch (err) {
+            console.error("Error loading voices", err)
+        }
+    }
+
+    loadVoices()
+
+    speakBtn.addEventListener("click", async () => {
+        const prompt = promptInput.value.trim()
+        const voice_id = voiceSelect.value
+        if (!prompt) return alert("Please type something for Nimbus Voice to speak!")
+        if (!voice_id) return alert("Please select a voice!")
+
+        responseText.textContent = ""
+        audioPlayer.src = ""
+        waveAnimation.style.display = "flex"
+        speakBtn.disabled = true
+        speakBtn.classList.add("loading")
+
+        try {
+            const res = await fetch("http://localhost:8080/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt, voice_id })
+            })
+            const data = await res.json()
+
+            responseText.textContent = data.text || "No response received."
+
+            if (data.audio) {
+                audioPlayer.src = `data:audio/mpeg;base64,${data.audio}`
+                audioPlayer.play()
+            }
+        } catch (err) {
+            console.error(err)
+            responseText.textContent = "Error processing request."
+        } finally {
+            waveAnimation.style.display = "none"
+            speakBtn.disabled = false
+            speakBtn.classList.remove("loading")
+        }
+    })
+</script>
+</body>
+</html>

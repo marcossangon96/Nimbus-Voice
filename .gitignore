@@ -326,3 +326,7 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/webstorm+all,jetbrains+all,git,windows,node
+
+backend/nimbus-voice-sa.json
+.env*
+node_modules
