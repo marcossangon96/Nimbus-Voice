@@ -97,9 +97,16 @@
             font-size: 16px;
             color: #333;
             transition: all 0.3s ease;
-            white-space: pre-wrap;
             text-align: left;
         }
+
+        .markdown-content h1 { font-size: 1.5em; }
+        .markdown-content h2 { font-size: 1.3em; }
+        .markdown-content h3 { font-size: 1.1em; }
+        .markdown-content strong { font-weight: bold; }
+        .markdown-content em { font-style: italic; }
+        .markdown-content code { background: #eee; padding: 2px 4px; border-radius: 4px; }
+        .markdown-content a { color: #6c63ff; text-decoration: none; }
 
         audio {
             margin-top: 20px;
@@ -134,6 +141,16 @@
         .wave span:nth-child(5) { animation-delay: 0.4s; }
 
         @keyframes wave { to { transform: scaleY(2); opacity: 0.6; } }
+
+        #thinkingText {
+            margin-top: 10px;
+            font-size: 18px;
+            color: #6c63ff;
+            font-weight: bold;
+            height: 24px;
+            overflow: hidden;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -142,13 +159,15 @@
     <textarea id="prompt" placeholder="Type your message..."></textarea>
     <select id="voiceSelect"></select>
     <button id="speakBtn">Send</button>
-    <div id="responseText"></div>
+    <div id="thinkingText"></div>
+    <div id="responseText" class="markdown-content"></div>
     <div class="wave" id="waveAnimation" style="display:none;">
         <span></span><span></span><span></span><span></span><span></span>
     </div>
     <audio id="audioPlayer" controls></audio>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
     const voiceSelect = document.getElementById("voiceSelect")
     const promptInput = document.getElementById("prompt")
@@ -156,6 +175,7 @@
     const responseText = document.getElementById("responseText")
     const audioPlayer = document.getElementById("audioPlayer")
     const waveAnimation = document.getElementById("waveAnimation")
+    const thinkingText = document.getElementById("thinkingText")
 
     async function loadVoices() {
         try {
@@ -175,11 +195,31 @@
         }
     }
 
+    function animateThinking(text) {
+        thinkingText.textContent = ""
+        let i = 0
+        const interval = setInterval(() => {
+            if (i < text.length) {
+                thinkingText.textContent += text[i]
+                i++
+            } else {
+                thinkingText.textContent = ""
+                i = 0
+            }
+        }, 200)
+        return interval
+    }
+
     async function sendPrompt() {
-        waveAnimation.style.display = "flex"
         const prompt = promptInput.value.trim()
         const voice_id = voiceSelect.value
         if (!prompt || !voice_id) return
+
+        waveAnimation.style.display = "flex"
+        const thinkingInterval = animateThinking("Thinking...")
+
+        responseText.innerHTML = ""
+
         try {
             const res = await fetch("/chat", {
                 method: "POST",
@@ -191,14 +231,17 @@
                 responseText.textContent = "Error: " + data.error
                 return
             }
-            responseText.textContent = data.text
+
+            responseText.innerHTML = marked.parse(data.text)
             audioPlayer.src = "data:audio/mpeg;base64," + data.audio
             audioPlayer.play()
         } catch (err) {
             console.error(err)
             responseText.textContent = "Network or server error"
-        }finally {
+        } finally {
             waveAnimation.style.display = "none"
+            clearInterval(thinkingInterval)
+            thinkingText.textContent = ""
         }
     }
 
