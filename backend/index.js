@@ -1,19 +1,17 @@
-import express from "express"
-import dotenv from "dotenv"
-import cors from "cors"
-import fetch from "node-fetch"
-import { VertexAI } from "@google-cloud/vertexai"
-import path from "path"
-import { fileURLToPath } from "url"
+const express = require("express")
+const dotenv = require("dotenv")
+const cors = require("cors")
+const fetch = require("node-fetch")
+const { VertexAI } = require("@google-cloud/vertexai")
+const path = require("path")
 
 dotenv.config()
 const app = express()
 app.use(express.json())
 app.use(cors())
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-app.use(express.static(path.join(__dirname, "public")))
+const __dirnameStatic = path.resolve()
+app.use(express.static(path.join(__dirnameStatic, "public")))
 
 const vertexAI = new VertexAI({
     project: process.env.GOOGLE_CLOUD_PROJECT,
@@ -25,8 +23,10 @@ app.post("/chat", async (req, res) => {
     try {
         const { prompt, voice_id } = req.body
         if (!prompt || !voice_id) return res.status(400).json({ error: "Missing prompt or voice_id" })
+
         const vertexResponse = await model.generateContent(prompt)
         const generatedText = vertexResponse.response.candidates[0].content.parts[0].text
+
         const elevenResponse = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice_id}`, {
             method: "POST",
             headers: {
@@ -38,8 +38,10 @@ app.post("/chat", async (req, res) => {
                 voice_settings: { stability: 0.5, similarity_boost: 0.75 }
             })
         })
+
         const audioBuffer = await elevenResponse.arrayBuffer()
         const base64Audio = Buffer.from(audioBuffer).toString("base64")
+
         res.json({ text: generatedText, audio: base64Audio })
     } catch (err) {
         console.error(err)
