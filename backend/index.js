@@ -4,16 +4,13 @@ const cors = require("cors")
 const fetch = require("node-fetch")
 const { VertexAI } = require("@google-cloud/vertexai")
 const fs = require("fs")
-const path = require("path")
 
 dotenv.config()
 const app = express()
 app.use(express.json())
 app.use(cors())
 
-app.get("/", (req, res) => {
-    res.redirect("/index.html")
-})
+app.use(express.static("public"))
 
 if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
     fs.writeFileSync("/tmp/key.json", process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON)
@@ -35,28 +32,45 @@ app.post("/chat", async (req, res) => {
         const { prompt, voice_id } = req.body
         if (!prompt || !voice_id) return res.status(400).json({ error: "Missing prompt or voice_id" })
 
-        const vertexResponse = await model.generateContent(prompt)
-        const generatedText = vertexResponse.response.candidates[0].content.parts[0].text
+        // Vertex AI
+        let generatedText = "Sorry, could not generate text."
+        try {
+            const vertexResponse = await model.generateContent(prompt)
+            if (vertexResponse?.response?.candidates?.length > 0) {
+                generatedText = vertexResponse.response.candidates[0].content.parts[0].text
+            }
+        } catch (err) {
+            console.error("VertexAI error:", err)
+        }
 
-        const elevenResponse = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice_id}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "xi-api-key": process.env.ELEVENLABS_API_KEY
-            },
-            body: JSON.stringify({
-                text: generatedText,
-                voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+        // ElevenLabs
+        let base64Audio = null
+        try {
+            const elevenResponse = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice_id}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "xi-api-key": process.env.ELEVENLABS_API_KEY
+                },
+                body: JSON.stringify({
+                    text: generatedText,
+                    voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+                })
             })
-        })
-
-        const audioBuffer = await elevenResponse.arrayBuffer()
-        const base64Audio = Buffer.from(audioBuffer).toString("base64")
+            if (elevenResponse.ok) {
+                const audioBuffer = await elevenResponse.arrayBuffer()
+                base64Audio = Buffer.from(audioBuffer).toString("base64")
+            } else {
+                console.error("ElevenLabs API error:", elevenResponse.status)
+            }
+        } catch (err) {
+            console.error("ElevenLabs fetch error:", err)
+        }
 
         res.json({ text: generatedText, audio: base64Audio })
     } catch (err) {
-        console.error(err)
-        res.status(500).json({ error: err.message })
+        console.error("Server error:", err)
+        res.status(500).json({ error: "Internal server error" })
     }
 })
 
@@ -68,8 +82,8 @@ app.get("/voices", async (req, res) => {
         const data = await response.json()
         res.json({ voices: data.voices })
     } catch (err) {
-        console.error(err)
-        res.status(500).json({ error: err.message })
+        console.error("Voices fetch error:", err)
+        res.status(500).json({ error: "Could not fetch voices" })
     }
 })
 
