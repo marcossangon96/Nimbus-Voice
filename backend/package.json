@@ -10,11 +10,16 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@ai-sdk/google-vertex": "^4.0.2",
     "@google-cloud/vertexai": "^1.10.0",
+    "@vercel/functions": "^3.3.4",
+    "@vercel/oidc": "^3.0.5",
+    "ai": "^6.0.5",
     "axios": "^1.13.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "google-auth-library": "^10.5.0",
     "node-fetch": "^2.7.0"
   },
   "devDependencies": {
