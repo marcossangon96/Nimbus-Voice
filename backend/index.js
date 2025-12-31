@@ -2,6 +2,7 @@ const express = require("express")
 const dotenv = require("dotenv")
 const cors = require("cors")
 const fetch = require("node-fetch")
+const path = require("path")
 const { VertexAI } = require("@google-cloud/vertexai")
 
 dotenv.config()
@@ -26,6 +27,14 @@ const vertexAI = new VertexAI({
 })
 
 const model = vertexAI.preview.getGenerativeModel({ model: "gemini-2.5-flash" })
+
+// Serve static files from "public" folder
+app.use(express.static(path.join(__dirname, "public")))
+
+// Root serves index.html
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"))
+})
 
 app.post("/chat", async (req, res) => {
     try {
