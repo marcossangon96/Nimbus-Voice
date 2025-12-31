@@ -4,16 +4,11 @@ const cors = require("cors")
 const fetch = require("node-fetch")
 const { VertexAI } = require("@google-cloud/vertexai")
 const fs = require("fs")
-const path = require("path")
 
 dotenv.config()
 const app = express()
 app.use(express.json())
 app.use(cors())
-
-app.get("/", (req, res) => {
-    res.redirect("/index.html")
-})
 
 if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
     fs.writeFileSync("/tmp/key.json", process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON)

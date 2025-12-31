@@ -6,12 +6,60 @@
     <title>Nimbus Voice</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Roboto', sans-serif; background-color: #f7f1f8; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .container { background: #ffffff; padding: 2rem; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); width: 350px; display: flex; flex-direction: column; gap: 1rem; }
-        textarea, select, button { width: 100%; font-size: 1rem; padding: 0.5rem; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
-        button { background-color: #a8dadc; border: none; cursor: pointer; transition: background 0.2s; }
-        button:hover { background-color: #457b9d; color: #fff; }
-        textarea { resize: vertical; min-height: 80px; }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f7f1f8;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        textarea, select, button {
+            width: 100%;
+            font-size: 1rem;
+            padding: 0.5rem;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        button {
+            background-color: #a8dadc;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #457b9d;
+            color: #fff;
+        }
+        select {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 0.5rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        #responseText {
+            white-space: pre-wrap;
+            min-height: 50px;
+        }
+        audio {
+            width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -44,7 +92,7 @@
                 })
             }
         } catch (err) {
-            console.error(err)
+            console.error("Error loading voices", err)
         }
     }
 
@@ -59,11 +107,16 @@
                 body: JSON.stringify({ prompt, voice_id })
             })
             const data = await res.json()
+            if (data.error) {
+                responseText.textContent = "Error: " + data.error
+                return
+            }
             responseText.textContent = data.text
             audioPlayer.src = "data:audio/mpeg;base64," + data.audio
             audioPlayer.play()
         } catch (err) {
             console.error(err)
+            responseText.textContent = "Network or server error"
         }
     }
 
