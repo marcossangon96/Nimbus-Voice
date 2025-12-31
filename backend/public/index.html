@@ -194,9 +194,6 @@
     const audioPlayer = document.getElementById("audioPlayer")
     const waveAnimation = document.getElementById("waveAnimation")
     const thinkingText = document.getElementById("thinkingText")
-    
-    responseText.style.display = "none"
-    audioPlayer.style.display = "none"
 
     async function loadVoices() {
         try {
@@ -243,7 +240,10 @@
             responseText.innerHTML = marked.parse(data.text)
             responseText.style.display = "block"
 
+            audioPlayer.pause()
+            audioPlayer.currentTime = 0
             audioPlayer.src = "data:audio/mpeg;base64," + data.audio
+            audioPlayer.load()
             audioPlayer.style.display = "block"
             audioPlayer.play()
         } catch (err) {
