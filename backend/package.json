@@ -1,28 +1,22 @@
 {
-  "name": "backend",
+  "name": "nimbus-voice-backend",
   "version": "1.0.0",
-  "description": "",
   "type": "module",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "@ai-sdk/google-vertex": "^4.0.2",
     "@google-cloud/vertexai": "^1.10.0",
     "@vercel/functions": "^3.3.4",
     "@vercel/oidc": "^3.0.5",
-    "ai": "^6.0.5",
     "axios": "^1.13.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "google-auth-library": "^10.5.0",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"
