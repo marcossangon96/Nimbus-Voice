@@ -240,12 +240,16 @@
             responseText.innerHTML = marked.parse(data.text)
             responseText.style.display = "block"
 
-            audioPlayer.pause()
-            audioPlayer.currentTime = 0
-            audioPlayer.src = "data:audio/mpeg;base64," + data.audio
-            audioPlayer.load()
-            audioPlayer.style.display = "block"
-            audioPlayer.play()
+            if (data.audio) {
+                audioPlayer.pause()
+                audioPlayer.currentTime = 0
+                audioPlayer.src = "data:audio/mpeg;base64," + data.audio
+                audioPlayer.load()
+                audioPlayer.style.display = "block"
+                audioPlayer.play()
+            } else {
+                audioPlayer.style.display = "none"
+            }
         } catch (err) {
             console.error(err)
             responseText.textContent = "Network or server error"
