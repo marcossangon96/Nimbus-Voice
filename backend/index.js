@@ -4,7 +4,9 @@ import fetch from "node-fetch"
 import { VertexAI } from "@google-cloud/vertexai"
 import { getVercelOidcToken } from "@vercel/oidc"
 import { ExternalAccountClient } from "google-auth-library"
+import dotenv from "dotenv"
 
+dotenv.config()
 const app = express()
 app.use(express.json())
 app.use(cors())
@@ -13,7 +15,8 @@ const GCP_PROJECT_ID = process.env.GCP_PROJECT_ID
 const GCP_PROJECT_NUMBER = process.env.GCP_PROJECT_NUMBER
 const GCP_SERVICE_ACCOUNT_EMAIL = process.env.GCP_SERVICE_ACCOUNT_EMAIL
 const GCP_WORKLOAD_IDENTITY_POOL_ID = process.env.GCP_WORKLOAD_IDENTITY_POOL_ID
-const GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID = process.env.GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID
+const GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID =
+    process.env.GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID
 
 const authClient = ExternalAccountClient.fromJSON({
     type: "external_account",
@@ -27,17 +30,11 @@ const authClient = ExternalAccountClient.fromJSON({
 })
 
 async function createVertexModel() {
-    const tokenResponse = await authClient.getAccessToken()
-    const accessToken = tokenResponse.token
-
     const vertexAI = new VertexAI({
-        auth: {
-            getRequestHeaders: async () => ({ Authorization: `Bearer ${accessToken}` }),
-        },
+        authClient,
         project: GCP_PROJECT_ID,
         location: "us-central1",
     })
-
     return vertexAI.preview.getGenerativeModel({ model: "gemini-2.5-flash" })
 }
 
@@ -87,7 +84,9 @@ app.get("/voices", async (req, res) => {
     }
 })
 
-app.get("/", (req, res) => res.redirect("/index.html"))
+app.get("/", (req, res) => {
+    res.redirect("/index.html")
+})
 
 const PORT = process.env.PORT || 8080
 app.listen(PORT, () => console.log(`Nimbus Voice backend running on ${PORT}`))
