@@ -27,26 +27,36 @@ const authClient = ExternalAccountClient.fromJSON({
 })
 
 const vertexAI = new VertexAI({
-    authClient,
     project: GCP_PROJECT_ID,
     location: "us-central1",
+    googleAuthOptions: {
+        authClient,
+        projectId: GCP_PROJECT_ID,
+    },
 })
 
-let modelPromise = vertexAI.preview.getGenerativeModel({ model: "gemini-2.5-flash" })
+const model = vertexAI.preview.getGenerativeModel({
+    model: "gemini-2.5-flash",
+})
 
 app.post("/chat", async (req, res) => {
     try {
         const { prompt, voice_id } = req.body
         if (!prompt || !voice_id) return res.status(400).json({ error: "Missing prompt or voice_id" })
 
-        const model = await modelPromise
-        const vertexResponse = await model.generateContent({ prompt })
+        const vertexResponse = await model.generateContent({ contents: [{ role: "user", parts: [{ text: prompt }] }] })
         const generatedText = vertexResponse.response.candidates[0].content.parts[0].text
 
         const elevenResponse = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice_id}`, {
             method: "POST",
-            headers: { "Content-Type": "application/json", "xi-api-key": process.env.ELEVENLABS_API_KEY },
-            body: JSON.stringify({ text: generatedText, voice_settings: { stability: 0.5, similarity_boost: 0.75 } }),
+            headers: {
+                "Content-Type": "application/json",
+                "xi-api-key": process.env.ELEVENLABS_API_KEY,
+            },
+            body: JSON.stringify({
+                text: generatedText,
+                voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+            }),
         })
 
         const audioBuffer = await elevenResponse.arrayBuffer()
@@ -60,7 +70,9 @@ app.post("/chat", async (req, res) => {
 
 app.get("/voices", async (req, res) => {
     try {
-        const response = await fetch("https://api.elevenlabs.io/v1/voices", { headers: { "xi-api-key": process.env.ELEVENLABS_API_KEY } })
+        const response = await fetch("https://api.elevenlabs.io/v1/voices", {
+            headers: { "xi-api-key": process.env.ELEVENLABS_API_KEY },
+        })
         const data = await response.json()
         res.json({ voices: data.voices })
     } catch (err) {
