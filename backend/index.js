@@ -1,7 +1,7 @@
 const express = require("express")
 const dotenv = require("dotenv")
 const cors = require("cors")
-const fetch = require("node-fetch")
+const fetch = require("node-fetch") // node-fetch v2
 const { VertexAI } = require("@google-cloud/vertexai")
 const path = require("path")
 
