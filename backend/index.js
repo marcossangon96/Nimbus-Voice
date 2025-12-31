@@ -32,15 +32,14 @@ const vertexAI = new VertexAI({
     location: "us-central1",
 })
 
+let modelPromise = vertexAI.preview.getGenerativeModel({ model: "gemini-2.5-flash" })
+
 app.post("/chat", async (req, res) => {
     try {
         const { prompt, voice_id } = req.body
         if (!prompt || !voice_id) return res.status(400).json({ error: "Missing prompt or voice_id" })
 
-        const model = await vertexAI.generativeModels.get({
-            model: "gemini-2.5-flash"
-        })
-
+        const model = await modelPromise
         const vertexResponse = await model.generateContent({ prompt })
         const generatedText = vertexResponse.response.candidates[0].content.parts[0].text
 
