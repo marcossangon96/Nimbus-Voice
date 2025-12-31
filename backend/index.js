@@ -1,12 +1,14 @@
 import express from "express"
 import cors from "cors"
 import fetch from "node-fetch"
-import { GenerativeModelsClient } from "@google-cloud/vertexai"
+import pkg from "@google-cloud/vertexai"
 import { getVercelOidcToken } from "@vercel/oidc"
 import { ExternalAccountClient } from "google-auth-library"
 import dotenv from "dotenv"
 
 dotenv.config()
+const { GenerativeModelsClient } = pkg
+
 const app = express()
 app.use(express.json())
 app.use(cors())
