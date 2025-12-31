@@ -1,9 +1,10 @@
 const express = require("express")
 const dotenv = require("dotenv")
 const cors = require("cors")
-const fetch = require("node-fetch") // node-fetch v2
+const fetch = require("node-fetch")
 const { VertexAI } = require("@google-cloud/vertexai")
 const path = require("path")
+const fs = require("fs")
 
 dotenv.config()
 const app = express()
@@ -12,6 +13,19 @@ app.use(cors())
 
 const __dirnameStatic = path.resolve()
 app.use(express.static(path.join(__dirnameStatic, "public")))
+
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirnameStatic, "public", "index.html"))
+})
+
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+    fs.writeFileSync("/tmp/key.json", process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON)
+    process.env.GOOGLE_APPLICATION_CREDENTIALS = "/tmp/key.json"
+}
+
+if (!process.env.GOOGLE_CLOUD_PROJECT) {
+    console.error("ERROR: GOOGLE_CLOUD_PROJECT not set")
+}
 
 const vertexAI = new VertexAI({
     project: process.env.GOOGLE_CLOUD_PROJECT,
