@@ -256,6 +256,7 @@
                         const audioSrc = "data:audio/mpeg;base64," + data.audio;
                         // Test if Base64 is valid by decoding
                         atob(data.audio);
+                        console.log(atob(data.audio))
                         audioPlayer.pause();
                         audioPlayer.currentTime = 0;
                         audioPlayer.src = audioSrc;
