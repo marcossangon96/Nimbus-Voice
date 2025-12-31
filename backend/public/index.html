@@ -98,6 +98,7 @@
             color: #333;
             transition: all 0.3s ease;
             text-align: left;
+            display: none;
         }
 
         .markdown-content h1 { font-size: 1.5em; }
@@ -114,6 +115,7 @@
             outline: none;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: none;
         }
 
         .wave {
@@ -148,6 +150,7 @@
             color: #6c63ff;
             font-weight: bold;
             height: 24px;
+            display: none;
         }
 
         .dots span {
@@ -170,15 +173,15 @@
     <textarea id="prompt" placeholder="Type your message..."></textarea>
     <select id="voiceSelect"></select>
     <button id="speakBtn">Send</button>
-    <div id="responseText" class="markdown-content"></div>
 
-    <div id="thinkingText" style="display:none;">
+    <div id="thinkingText">
         Thinking<span class="dots"><span>.</span><span>.</span><span>.</span></span>
     </div>
     <div class="wave" id="waveAnimation" style="display:none;">
         <span></span><span></span><span></span><span></span><span></span>
     </div>
 
+    <div id="responseText" class="markdown-content"></div>
     <audio id="audioPlayer" controls></audio>
 </div>
 
@@ -217,6 +220,8 @@
 
         waveAnimation.style.display = "flex"
         thinkingText.style.display = "block"
+        responseText.style.display = "none"
+        audioPlayer.style.display = "none"
         responseText.innerHTML = ""
 
         try {
@@ -228,15 +233,20 @@
             const data = await res.json()
             if (data.error) {
                 responseText.textContent = "Error: " + data.error
+                responseText.style.display = "block"
                 return
             }
 
             responseText.innerHTML = marked.parse(data.text)
+            responseText.style.display = "block"
+
             audioPlayer.src = "data:audio/mpeg;base64," + data.audio
+            audioPlayer.style.display = "block"
             audioPlayer.play()
         } catch (err) {
             console.error(err)
             responseText.textContent = "Network or server error"
+            responseText.style.display = "block"
         } finally {
             waveAnimation.style.display = "none"
             thinkingText.style.display = "none"
